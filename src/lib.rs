@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 /// T is a trigram
-#[derive(Debug, Eq, Hash, Clone, PartialEq)]
+#[derive(Debug, Eq, Hash, Clone, Copy, PartialEq)]
 pub struct T(u32);
 
 use std::fmt;
@@ -135,27 +135,28 @@ impl Index {
         return self.query_trigrams(ts);
     }
 
+    fn copy_all_docs(&self) -> Vec<DocID> {
+        let all = self.0.get(&TAllDocIDs).unwrap().as_ref().unwrap();
+        all.clone()
+    }
+
     pub fn query_trigrams(&self, trigrams: Vec<T>) -> Vec<DocID> {
-        /*
         if trigrams.len() == 0 {
-            return self.0.get(&TAllDocIDs).unwrap();
+            return self.copy_all_docs();
         }
-        */
 
-        /*
-
-        let mut freqs = Vec::<term_frequency>::new();
+        let mut freqs = Vec::<TermFrequency>::new();
         for t in trigrams.iter() {
             let d = match self.0.get(t) {
                 None => return Vec::<DocID>::new(),
                 Some(d) => d,
             };
-            freqs.push(term_frequency {
+            freqs.push(TermFrequency {
                 t: *t,
                 freq: match d {
                     None => 0,
                     Some(d) => d.len(),
-                }
+                },
             });
         }
 
@@ -164,17 +165,21 @@ impl Index {
         let mut nonzero = 0usize;
         while nonzero < freqs.len() && freqs[nonzero].freq == 0 {
             nonzero += 1;
-        };
-
-        if nonzero == freqs.len() {
-            self.0.get(&TAllDocIDs).unwrap();
         }
 
+        // all the trigrams have been pruned; return all docs
+        if nonzero == freqs.len() {
+            return self.copy_all_docs();
+        }
+        let mut ts = Vec::<T>::new();
+        ts.reserve(freqs.len() - nonzero);
+
         // skip over pruned trigrams
+        for tf in freqs[nonzero..freqs.len()].iter() {
+            ts.push(tf.t);
+        }
 
-        */
-
-        let (first, rest) = trigrams.split_first().unwrap();
+        let (first, rest) = ts.split_first().unwrap();
 
         let docs = self.0.get(first);
 
