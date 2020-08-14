@@ -1,12 +1,24 @@
 use std::collections::HashMap;
 
 /// T is a trigram
-#[derive(Debug, Eq, Hash, Clone, Copy, PartialEq)]
+#[derive(Eq, Hash, Clone, Copy, PartialEq)]
 pub struct T(u32);
 
 use std::fmt;
 
 impl fmt::Display for T {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "T({}{}{})",
+            (self.0 >> 16) as u8 as char,
+            (self.0 >> 8) as u8 as char,
+            self.0 as u8 as char,
+        )
+    }
+}
+
+impl fmt::Debug for T {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -25,6 +37,7 @@ pub struct DocID(i32);
 /// Index is a trigram index
 pub struct Index(HashMap<T, Option<Vec<DocID>>>);
 
+#[derive(Debug)]
 struct TermFrequency {
     t: T,
     freq: usize,
