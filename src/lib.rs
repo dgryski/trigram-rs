@@ -225,11 +225,9 @@ impl Index {
     // Filter removes documents that don't contain the specified trigrams
     pub fn filter(&self, docs: &Vec<DocID>, ts: Vec<T>) -> Vec<DocID> {
         // no provided filter trigrams
-        /*
         if ts.len() == 0 {
-            return docs;
+            return docs.clone();
         }
-        */
 
         // interesting implementation detail:
         // we don't want to repurpose/alter docs since it's typically
