@@ -34,8 +34,13 @@ impl fmt::Debug for T {
 #[derive(Debug, Eq, Copy, Clone, PartialEq, PartialOrd)]
 pub struct DocID(i32);
 
+enum Posting {
+    Pruned,
+    List(Vec<DocID>),
+}
+
 /// Index is a trigram index
-pub struct Index(HashMap<T, Option<Vec<DocID>>>);
+pub struct Index(HashMap<T, Posting>);
 
 #[derive(Debug)]
 struct TermFrequency {
@@ -105,7 +110,7 @@ pub fn extract_all_trigrams(s: &str, trigrams: &mut Vec<T>) {
 
 // NewIndex returns an index for the strings in docs
 fn new_index(docs: Vec<&str>) -> Index {
-    let mut idx = HashMap::<T, Option<Vec<DocID>>>::new();
+    let mut idx = HashMap::<T, Posting>::new();
     let mut all_doc_ids = Vec::<DocID>::new();
     let mut trigrams = Vec::<T>::new();
 
@@ -118,26 +123,25 @@ fn new_index(docs: Vec<&str>) -> Index {
         for t in trigrams.iter() {
             match idx.get_mut(&t) {
                 None => {
-                    idx.insert(t.clone(), Some(vec![docid]));
+                    idx.insert(t.clone(), Posting::List(vec![docid]));
                 }
-                Some(oidxt) => match oidxt.as_ref().unwrap().last() {
-                    None => {
-                        let idxt = oidxt.as_mut().unwrap();
-                        idxt.push(docid);
-                    }
-                    Some(did) => {
-                        if did != &docid {
-                            let idxt = oidxt.as_mut().unwrap();
-                            idxt.push(docid);
+                Some(oidxt) => match oidxt {
+                    Posting::Pruned => panic!("pruned list found during index construction"),
+                    Posting::List(idxt) => match idxt.last() {
+                        None => idxt.push(docid),
+                        Some(did) => {
+                            if did != &docid {
+                                idxt.push(docid);
+                            }
                         }
-                    }
+                    },
                 },
             }
         }
         trigrams.clear();
     }
 
-    idx.insert(TAllDocIDs, Some(all_doc_ids));
+    idx.insert(TAllDocIDs, Posting::List(all_doc_ids));
 
     return Index(idx);
 }
@@ -148,9 +152,16 @@ impl Index {
         return self.query_trigrams(ts);
     }
 
+    fn get_all_docs(&self) -> &Vec<DocID> {
+        let all = match self.0.get(&TAllDocIDs).unwrap() {
+            Posting::Pruned => panic!("all docs pruned"),
+            Posting::List(l) => l,
+        };
+        all
+    }
+
     fn copy_all_docs(&self) -> Vec<DocID> {
-        let all = self.0.get(&TAllDocIDs).unwrap().as_ref().unwrap();
-        all.clone()
+        self.get_all_docs().clone()
     }
 
     pub fn query_trigrams(&self, trigrams: Vec<T>) -> Vec<DocID> {
@@ -167,8 +178,8 @@ impl Index {
             freqs.push(TermFrequency {
                 t: *t,
                 freq: match d {
-                    None => 0,
-                    Some(d) => d.len(),
+                    Posting::Pruned => 0,
+                    Posting::List(d) => d.len(),
                 },
             });
         }
@@ -199,23 +210,27 @@ impl Index {
         match docs {
             None => return Vec::<DocID>::new(),
             Some(docs) => match docs {
-                None => return Vec::<DocID>::new(),
-                Some(d) => return self.filter(d, rest.to_vec()),
+                Posting::Pruned => return Vec::<DocID>::new(),
+                Posting::List(d) => return self.filter(d, rest.to_vec()),
             },
         };
     }
 
     pub fn prune(&mut self, percent: f64) -> usize {
-        let max_documents =
-            (percent * self.0.get(&TAllDocIDs).unwrap().as_ref().unwrap().len() as f64) as usize;
+        let max_documents = (percent * (self.get_all_docs().len() as f64)) as usize;
 
         let mut pruned = 0usize;
 
         // Update all values
         for (_, v) in self.0.iter_mut() {
-            if v.is_some() && v.as_ref().unwrap().len() > max_documents {
-                pruned += 1;
-                *v = None;
+            match v {
+                Posting::Pruned => continue,
+                Posting::List(l) => {
+                    if l.len() > max_documents {
+                        pruned += 1;
+                        *v = Posting::Pruned;
+                    }
+                }
             }
         }
 
@@ -247,11 +262,8 @@ impl Index {
             };
 
             let d = match d {
-                None => {
-                    // the trigram was removed via Prune()
-                    continue;
-                }
-                Some(d) => d,
+                Posting::Pruned => continue,
+                Posting::List(l) => l,
             };
 
             if first {
