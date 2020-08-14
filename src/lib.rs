@@ -332,17 +332,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn test_query() {
         let docs = vec!["foo", "foobar", "foobfoo", "quxzoot", "zotzot", "azotfoba"];
 
         let idx = new_index(docs);
 
-        let tests = vec!["", "foo", "foob", "zot", "oba"];
-
-        for tt in tests {
-            println!("query({})={:?}", tt, idx.query(tt));
+        macro_rules! test_query {
+            ($q:expr, $want:expr) => {{
+                let got = idx.query($q);
+                assert_eq!(got, $want);
+            }};
         }
 
-        assert_eq!(2 + 2, 4);
+        test_query!(
+            "",
+            vec![DocID(0), DocID(1), DocID(2), DocID(3), DocID(4), DocID(5)]
+        );
+
+        test_query!("foo", vec![DocID(0), DocID(1), DocID(2)]);
+        test_query!("foob", vec![DocID(1), DocID(2)]);
+        test_query!("zot", vec![DocID(4), DocID(5)]);
+        test_query!("oba", vec![DocID(1), DocID(5)]);
     }
 }
