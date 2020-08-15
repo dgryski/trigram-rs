@@ -72,6 +72,10 @@ impl Indexer {
             return Err("no index loaded".to_string());
         }
 
+        if args.len() == 0 {
+            return Err("missing query".to_string());
+        }
+
         let mut trigrams = Vec::<trigram_rs::T>::new();
         let mut ts = Vec::<trigram_rs::T>::new();
         for q in args.iter() {
