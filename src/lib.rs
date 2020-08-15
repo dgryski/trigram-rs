@@ -107,45 +107,45 @@ pub fn extract_all_trigrams(s: &str, trigrams: &mut Vec<T>) {
     }
 }
 
-// NewIndex returns an index for the strings in docs
-fn new_index(docs: Vec<&str>) -> Index {
-    let mut idx = HashMap::<T, Posting>::new();
-    let mut all_doc_ids = Vec::<DocID>::new();
-    let mut trigrams = Vec::<T>::new();
+impl Index {
+    // NewIndex returns an index for the strings in docs
+    pub fn new_with_documents(docs: Vec<&str>) -> Index {
+        let mut idx = HashMap::<T, Posting>::new();
+        let mut all_doc_ids = Vec::<DocID>::new();
+        let mut trigrams = Vec::<T>::new();
 
-    for (id, &d) in docs.iter().enumerate() {
-        extract_all_trigrams(d, &mut trigrams);
-        let docid = DocID(id as i32);
+        for (id, &d) in docs.iter().enumerate() {
+            extract_all_trigrams(d, &mut trigrams);
+            let docid = DocID(id as i32);
 
-        all_doc_ids.push(docid);
+            all_doc_ids.push(docid);
 
-        for t in trigrams.iter() {
-            match idx.get_mut(&t) {
-                None => {
-                    idx.insert(t.clone(), Posting::List(vec![docid]));
-                }
-                Some(oidxt) => match oidxt {
-                    Posting::Pruned => panic!("pruned list found during index construction"),
-                    Posting::List(idxt) => match idxt.last() {
-                        None => idxt.push(docid),
-                        Some(did) => {
-                            if did != &docid {
-                                idxt.push(docid);
+            for t in trigrams.iter() {
+                match idx.get_mut(&t) {
+                    None => {
+                        idx.insert(t.clone(), Posting::List(vec![docid]));
+                    }
+                    Some(oidxt) => match oidxt {
+                        Posting::Pruned => panic!("pruned list found during index construction"),
+                        Posting::List(idxt) => match idxt.last() {
+                            None => idxt.push(docid),
+                            Some(did) => {
+                                if did != &docid {
+                                    idxt.push(docid);
+                                }
                             }
-                        }
+                        },
                     },
-                },
+                }
             }
+            trigrams.clear();
         }
-        trigrams.clear();
+
+        idx.insert(ALL_DOC_IDS, Posting::List(all_doc_ids));
+
+        return Index(idx);
     }
 
-    idx.insert(ALL_DOC_IDS, Posting::List(all_doc_ids));
-
-    return Index(idx);
-}
-
-impl Index {
     pub fn query(&self, s: &str) -> Vec<DocID> {
         let ts = extract_trigrams(s);
         return self.query_trigrams(ts);
@@ -357,7 +357,7 @@ mod tests {
     fn test_query() {
         let docs = vec!["foo", "foobar", "foobfoo", "quxzoot", "zotzot", "azotfoba"];
 
-        let idx = new_index(docs);
+        let idx = Index::new_with_documents(docs);
 
         macro_rules! test_query {
             ($q:expr, $want:expr) => {{
