@@ -71,7 +71,7 @@ impl Ord for TermFrequency {
 impl Eq for TermFrequency {}
 
 // a special (and invalid) trigram that holds all the document IDs
-const TAllDocIDs: T = T(0xFFFFFFFF);
+const ALL_DOC_IDS: T = T(0xFFFFFFFF);
 
 // Extract returns a list of all the unique trigrams in s
 pub fn extract_trigrams(s: &str) -> Vec<T> {
@@ -140,7 +140,7 @@ fn new_index(docs: Vec<&str>) -> Index {
         trigrams.clear();
     }
 
-    idx.insert(TAllDocIDs, Posting::List(all_doc_ids));
+    idx.insert(ALL_DOC_IDS, Posting::List(all_doc_ids));
 
     return Index(idx);
 }
@@ -152,7 +152,7 @@ impl Index {
     }
 
     fn get_all_docs(&self) -> &Vec<DocID> {
-        let all = match self.0.get(&TAllDocIDs).unwrap() {
+        let all = match self.0.get(&ALL_DOC_IDS).unwrap() {
             Posting::Pruned => panic!("all docs pruned"),
             Posting::List(l) => l,
         };
