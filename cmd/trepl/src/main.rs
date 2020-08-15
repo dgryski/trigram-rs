@@ -25,6 +25,7 @@ impl Cmd for Indexer {
             "index" => self.run_index(args),
             "search" => self.run_search(args),
             "print" => self.run_print(args),
+            "brute" => self.run_brute(args),
             _ => Err("unknown command".to_string()),
         }
     }
@@ -104,6 +105,42 @@ impl Indexer {
         for id in ids {
             println!("{}", docs[id.as_usize()]);
         }
+
+        Ok(())
+    }
+
+    fn run_brute(&mut self, args: &Vec<String>) -> Result<(), String> {
+        let docs = match &self.docs {
+            None => return Err("no index loaded".to_string()),
+            Some(docs) => docs,
+        };
+
+        if args.len() == 0 {
+            return Err("missing query".to_string());
+        }
+
+        let mut ids = Vec::<trigram_rs::DocID>::new();
+        let t0 = Instant::now();
+
+        let patterns = args;
+
+        'next_document: for (i, s) in docs.iter().enumerate() {
+            for pat in patterns {
+                if !s.contains(pat) {
+                    continue 'next_document;
+                }
+            }
+
+            ids.push(trigram_rs::DocID::from_i32(i as i32));
+        }
+
+        println!(
+            "found {} documents in {}ms",
+            ids.len(),
+            t0.elapsed().as_millis()
+        );
+
+        self.ids = Some(ids);
 
         Ok(())
     }

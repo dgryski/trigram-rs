@@ -38,6 +38,10 @@ impl DocID {
     pub fn as_usize(&self) -> usize {
         return self.0 as usize;
     }
+
+    pub fn from_i32(id: i32) -> DocID {
+        DocID(id)
+    }
 }
 
 enum Posting {
