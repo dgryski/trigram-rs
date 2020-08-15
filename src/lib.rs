@@ -146,6 +146,49 @@ impl Index {
         return Index(idx);
     }
 
+    pub fn add(&mut self, s: &str) -> DocID {
+        let id = DocID(self.get_all_docs().len() as i32);
+        self.insert(s, id);
+        return id;
+    }
+
+    pub fn add_trigrams(&mut self, ts: &Vec<T>) -> DocID {
+        let id = DocID(self.get_all_docs().len() as i32);
+        self.insert_trigrams(ts, id);
+        return id;
+    }
+
+    pub fn insert(&mut self, s: &str, id: DocID) {
+        let mut ts = Vec::<T>::new();
+        extract_all_trigrams(s, &mut ts);
+        self.insert_trigrams(&ts, id);
+    }
+
+    pub fn insert_trigrams(&mut self, ts: &Vec<T>, id: DocID) {
+        for t in ts.iter() {
+            match self.0.get_mut(&t) {
+                None => {
+                    self.0.insert(t.clone(), Posting::List(vec![id]));
+                }
+                Some(oidxt) => match oidxt {
+                    Posting::Pruned => { /* trigram post list has been pruned; it must be kept empty */
+                    }
+                    Posting::List(idxt) => match idxt.last() {
+                        None => idxt.push(id),
+                        Some(did) => {
+                            if did != &id {
+                                idxt.push(id);
+                            }
+                        }
+                    },
+                },
+            }
+        }
+
+        let all = self.get_all_docs_mut();
+        all.push(id);
+    }
+
     pub fn query(&self, s: &str) -> Vec<DocID> {
         let ts = extract_trigrams(s);
         return self.query_trigrams(ts);
@@ -153,6 +196,14 @@ impl Index {
 
     fn get_all_docs(&self) -> &Vec<DocID> {
         let all = match self.0.get(&ALL_DOC_IDS).unwrap() {
+            Posting::Pruned => panic!("all docs pruned"),
+            Posting::List(l) => l,
+        };
+        all
+    }
+
+    fn get_all_docs_mut(&mut self) -> &mut Vec<DocID> {
+        let all = match self.0.get_mut(&ALL_DOC_IDS).unwrap() {
             Posting::Pruned => panic!("all docs pruned"),
             Posting::List(l) => l,
         };
@@ -357,7 +408,7 @@ mod tests {
     fn test_query() {
         let docs = vec!["foo", "foobar", "foobfoo", "quxzoot", "zotzot", "azotfoba"];
 
-        let idx = Index::new_with_documents(docs);
+        let mut idx = Index::new_with_documents(docs);
 
         macro_rules! test_query {
             ($q:expr, $want:expr) => {{
@@ -375,5 +426,11 @@ mod tests {
         test_query!("foob", vec![DocID(1), DocID(2)]);
         test_query!("zot", vec![DocID(4), DocID(5)]);
         test_query!("oba", vec![DocID(1), DocID(5)]);
+
+        idx.add("quxlzot"); // 6
+        idx.add("zottlequx"); // 7
+        idx.add("bazlefob"); // 8
+
+        test_query!("zottle", vec![DocID(7)]);
     }
 }
