@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 /// T is a trigram
-#[derive(Eq, Hash, Clone, Copy, PartialEq)]
+#[derive(Eq, Hash, Clone, Copy, PartialEq, Ord, PartialOrd)]
 pub struct T(u32);
 
 use std::fmt;
@@ -311,7 +311,7 @@ impl Index {
             None => return Vec::<DocID>::new(),
             Some(docs) => match docs {
                 Posting::Pruned => return Vec::<DocID>::new(),
-                Posting::List(d) => return self.filter(d, rest.to_vec()),
+                Posting::List(d) => return self.filter(d, &rest.to_vec()),
             },
         };
     }
@@ -338,7 +338,7 @@ impl Index {
     }
 
     // Filter removes documents that don't contain the specified trigrams
-    pub fn filter(&self, docs: &Vec<DocID>, ts: Vec<T>) -> Vec<DocID> {
+    pub fn filter(&self, docs: &Vec<DocID>, ts: &Vec<T>) -> Vec<DocID> {
         // no provided filter trigrams
         if ts.len() == 0 {
             return docs.clone();

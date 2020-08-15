@@ -26,6 +26,7 @@ impl Cmd for Indexer {
             "search" => self.run_search(args),
             "print" => self.run_print(args),
             "brute" => self.run_brute(args),
+            "filter" => self.run_filter(args),
             _ => Err("unknown command".to_string()),
         }
     }
@@ -145,6 +146,44 @@ impl Indexer {
         );
 
         self.ids = Some(ids);
+
+        Ok(())
+    }
+
+    pub fn run_filter(&mut self, args: &Vec<String>) -> Result<(), String> {
+        if args.len() == 0 {
+            return Err("no filter query".to_string());
+        }
+
+        let idx = match &self.idx {
+            None => return Err("no index loaded".to_string()),
+            Some(idx) => idx,
+        };
+
+        let ids = match &self.ids {
+            None => return Err("no ids from query".to_string()),
+            Some(ids) => ids,
+        };
+
+        let mut trigrams = Vec::<trigram_rs::T>::new();
+        for q in args.iter() {
+            let ts = trigram_rs::extract_trigrams(q);
+            trigrams.extend(&ts);
+        }
+
+        trigrams.sort();
+        trigrams.dedup();
+
+        let t0 = Instant::now();
+        let new_ids = idx.filter(&ids, &trigrams);
+
+        println!(
+            "filtered {} documents in {}ms",
+            new_ids.len(),
+            t0.elapsed().as_millis()
+        );
+
+        self.ids = Some(new_ids.to_vec());
 
         Ok(())
     }
