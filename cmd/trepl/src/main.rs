@@ -28,6 +28,7 @@ impl Cmd for Indexer {
             "brute" => self.run_brute(args),
             "filter" => self.run_filter(args),
             "trigrams" => self.run_trigrams(args),
+            "prune" => self.run_prune(args),
             _ => Err("unknown command".to_string()),
         }
     }
@@ -212,6 +213,32 @@ impl Indexer {
         for (i, t) in trigrams.iter().enumerate() {
             println!("{}: {}", t, counts[i]);
         }
+
+        Ok(())
+    }
+
+    pub fn run_prune(&mut self, args: &Vec<String>) -> Result<(), String> {
+        let idx = match self.idx.as_mut() {
+            None => return Err("no index loaded".to_string()),
+            Some(idx) => idx,
+        };
+
+        if args.len() == 0 {
+            return Err("missing percentage".to_string());
+        }
+
+        let percent = match i32::from_str_radix(&*args[0], 10) {
+            Ok(p) => p,
+            Err(err) => return Err(format!("error parsing percentage: {}", err)),
+        };
+
+        if percent <= 0 || percent >= 100 {
+            return Err("percentage must be 1..99".to_string());
+        }
+
+        let pruned = idx.prune((percent as f64) / 100.0);
+
+        println!("pruned {} at {}", pruned, percent);
 
         Ok(())
     }
