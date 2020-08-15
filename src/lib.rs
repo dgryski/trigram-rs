@@ -34,6 +34,12 @@ impl fmt::Debug for T {
 #[derive(Debug, Eq, Copy, Clone, PartialEq, PartialOrd, Ord)]
 pub struct DocID(i32);
 
+impl DocID {
+    pub fn as_usize(&self) -> usize {
+        return self.0 as usize;
+    }
+}
+
 enum Posting {
     Pruned,
     List(Vec<DocID>),
