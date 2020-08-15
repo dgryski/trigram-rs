@@ -168,7 +168,7 @@ impl Index {
             return self.copy_all_docs();
         }
 
-        let mut freqs = Vec::<TermFrequency>::new();
+        let mut freqs = Vec::<TermFrequency>::with_capacity(trigrams.len());
         for t in trigrams.iter() {
             let d = match self.0.get(t) {
                 None => return Vec::<DocID>::new(),
