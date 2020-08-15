@@ -260,7 +260,7 @@ impl Index {
         self.get_all_docs().clone()
     }
 
-    pub fn query_trigrams(&self, trigrams: Vec<T>) -> Vec<DocID> {
+    pub fn query_trigrams(&self, trigrams: &Vec<T>) -> Vec<DocID> {
         if trigrams.len() == 0 {
             return self.copy_all_docs();
         }
