@@ -77,11 +77,10 @@ const TAllDocIDs: T = T(0xFFFFFFFF);
 pub fn extract_trigrams(s: &str) -> Vec<T> {
     let mut trigrams: Vec<T> = Vec::new();
 
-    let bytes = s.as_bytes();
-
     if s.len() < 3 {
         return trigrams;
     }
+    let bytes = s.as_bytes();
 
     for i in 0..=bytes.len() - 3 {
         let t: T = T((bytes[i] as u32) << 16 | (bytes[i + 1] as u32) << 8 | bytes[i + 2] as u32);
