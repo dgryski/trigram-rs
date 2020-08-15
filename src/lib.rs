@@ -237,7 +237,7 @@ impl Index {
 
     pub fn query(&self, s: &str) -> Vec<DocID> {
         let ts = extract_trigrams(s);
-        return self.query_trigrams(ts);
+        return self.query_trigrams(&ts);
     }
 
     fn get_all_docs(&self) -> &Vec<DocID> {
