@@ -264,6 +264,24 @@ impl Index {
         self.get_all_docs().clone()
     }
 
+    pub fn trigram_counts(&self, trigrams: &Vec<T>) -> Vec<i32> {
+        let mut counts = Vec::<i32>::new();
+        counts.reserve(trigrams.len());
+
+        for t in trigrams {
+            let n = match self.0.get(t) {
+                None => 0,
+                Some(l) => match l {
+                    Posting::Pruned => 0,
+                    Posting::List(l) => l.len() as i32,
+                },
+            };
+            counts.push(n);
+        }
+
+        counts
+    }
+
     pub fn query_trigrams(&self, trigrams: &Vec<T>) -> Vec<DocID> {
         if trigrams.len() == 0 {
             return self.copy_all_docs();

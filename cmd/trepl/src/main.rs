@@ -27,6 +27,7 @@ impl Cmd for Indexer {
             "print" => self.run_print(args),
             "brute" => self.run_brute(args),
             "filter" => self.run_filter(args),
+            "trigrams" => self.run_trigrams(args),
             _ => Err("unknown command".to_string()),
         }
     }
@@ -184,6 +185,33 @@ impl Indexer {
         );
 
         self.ids = Some(new_ids.to_vec());
+
+        Ok(())
+    }
+
+    pub fn run_trigrams(&self, args: &Vec<String>) -> Result<(), String> {
+        let idx = match &self.idx {
+            Some(idx) => idx,
+            None => return Err("no index loaded".to_string()),
+        };
+
+        if args.len() == 0 {
+            return Err("missing query".to_string());
+        }
+
+        let mut trigrams = Vec::<trigram_rs::T>::new();
+        for q in args.iter() {
+            let ts = trigram_rs::extract_trigrams(q);
+            trigrams.extend(&ts);
+        }
+        trigrams.sort();
+        trigrams.dedup();
+
+        let counts = idx.trigram_counts(&trigrams);
+
+        for (i, t) in trigrams.iter().enumerate() {
+            println!("{}: {}", t, counts[i]);
+        }
 
         Ok(())
     }
