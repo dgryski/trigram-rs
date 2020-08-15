@@ -101,6 +101,10 @@ fn append_if_unique(mut trigrams: Vec<T>, t: T) -> Vec<T> {
 pub fn extract_all_trigrams(s: &str, trigrams: &mut Vec<T>) {
     let bytes = s.as_bytes();
 
+    if bytes.len() < 3 {
+        return;
+    }
+
     for i in 0..=bytes.len() - 3 {
         let t: T = T((bytes[i] as u32) << 16 | (bytes[i + 1] as u32) << 8 | bytes[i + 2] as u32);
         trigrams.push(t);
