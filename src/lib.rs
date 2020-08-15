@@ -31,7 +31,7 @@ impl fmt::Debug for T {
 }
 
 /// DocID is a document ID
-#[derive(Debug, Eq, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Eq, Copy, Clone, PartialEq, PartialOrd, Ord)]
 pub struct DocID(i32);
 
 enum Posting {
@@ -187,6 +187,42 @@ impl Index {
 
         let all = self.get_all_docs_mut();
         all.push(id);
+    }
+
+    pub fn delete(&mut self, s: &str, id: DocID) {
+        let mut ts = Vec::<T>::new();
+        extract_all_trigrams(s, &mut ts);
+
+        for t in ts.iter() {
+            match self.0.get_mut(&t) {
+                None => {
+                    // odd, no posting list present for this trigram
+                    continue;
+                }
+                Some(oidxt) => match oidxt {
+                    Posting::Pruned => {
+                        // trigram poost list has been pruned; ignore
+                    }
+                    Posting::List(idxt) => match idxt.len() {
+                        0 => {
+                            // posting list empty for this trigram
+                            continue;
+                        }
+                        1 => {
+                            if idxt[0] == id {
+                                self.0.remove(t);
+                                continue;
+                            }
+                        }
+                        _ => {
+                            if let Ok(n) = idxt.binary_search(&id) {
+                                idxt.remove(n);
+                            }
+                        }
+                    },
+                },
+            }
+        }
     }
 
     pub fn query(&self, s: &str) -> Vec<DocID> {
