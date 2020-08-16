@@ -251,6 +251,8 @@ fn run(prompt: &str, mut commands: impl Cmd) {
         let readline = rl.readline(prompt);
         match readline {
             Ok(line) => {
+                rl.add_history_entry(line.as_str());
+
                 let words = match shlex::split(&line) {
                     None => {
                         println!("syntax error");
