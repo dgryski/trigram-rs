@@ -110,7 +110,7 @@ impl Indexer {
         let ids = self.ids.as_ref().unwrap();
 
         for id in ids {
-            println!("{}", docs[id.as_usize()]);
+            println!("{}: {}", id.as_usize(), docs[id.as_usize()]);
         }
 
         Ok(())
