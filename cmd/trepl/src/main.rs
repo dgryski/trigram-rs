@@ -29,6 +29,7 @@ impl Cmd for Indexer {
             "filter" => self.run_filter(args),
             "trigrams" => self.run_trigrams(args),
             "prune" => self.run_prune(args),
+            "delete" => self.run_delete(args),
             _ => Err("unknown command".to_string()),
         }
     }
@@ -239,6 +240,30 @@ impl Indexer {
         let pruned = idx.prune((percent as f64) / 100.0);
 
         println!("pruned {} at {}", pruned, percent);
+
+        Ok(())
+    }
+
+    pub fn run_delete(&mut self, args: &Vec<String>) -> Result<(), String> {
+        let idx = match self.idx.as_mut() {
+            None => return Err("no index loaded".to_string()),
+            Some(idx) => idx,
+        };
+
+        if args.len() != 2 {
+            return Err("need str and id".to_string());
+        }
+
+        let strdoc = &*args[0];
+
+        let id = match i32::from_str_radix(&*args[1], 10) {
+            Ok(p) => p,
+            Err(err) => return Err(format!("error parsing id: {}", err)),
+        };
+
+        idx.delete(strdoc, trigram_rs::DocID::from_i32(id));
+
+        println!("deleted `{}` at id {}", strdoc, id);
 
         Ok(())
     }
