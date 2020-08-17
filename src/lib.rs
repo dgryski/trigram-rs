@@ -340,11 +340,11 @@ impl Index {
         let mut pruned = 0usize;
 
         // Update all values
-        for (_, v) in self.0.iter_mut() {
+        for (t, v) in self.0.iter_mut() {
             match v {
                 Posting::Pruned => continue,
                 Posting::List(l) => {
-                    if l.len() > max_documents {
+                    if l.len() > max_documents && t != &ALL_DOC_IDS {
                         pruned += 1;
                         *v = Posting::Pruned;
                     }
