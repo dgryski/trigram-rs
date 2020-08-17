@@ -23,6 +23,7 @@ impl Cmd for Indexer {
     fn run(&mut self, cmd: &String, args: &Vec<String>) -> Result<(), String> {
         match cmd.as_str() {
             "index" => self.run_index(args),
+            "bench" => self.run_bench(args),
             "search" => self.run_search(args),
             "print" => self.run_print(args),
             "brute" => self.run_brute(args),
@@ -71,7 +72,7 @@ impl Indexer {
         Ok(())
     }
 
-    fn run_search(&mut self, args: &Vec<String>) -> Result<(), String> {
+    fn run_bench(&mut self, args: &Vec<String>) -> Result<(), String> {
         if self.idx.is_none() {
             return Err("no index loaded".to_string());
         }
@@ -98,6 +99,31 @@ impl Indexer {
             }
             println!("found {} hits in {}ms", found, t0.elapsed().as_millis());
         }
+
+        Ok(())
+    }
+
+    fn run_search(&mut self, args: &Vec<String>) -> Result<(), String> {
+        if self.idx.is_none() {
+            return Err("no index loaded".to_string());
+        }
+
+        if args.len() == 0 {
+            return Err("missing query".to_string());
+        }
+
+        let mut trigrams = Vec::<trigram_rs::T>::new();
+        let mut ts = Vec::<trigram_rs::T>::new();
+        for q in args.iter() {
+            trigram_rs::extract_all_trigrams(q, &mut ts);
+            trigrams.extend(&ts);
+            ts.clear()
+        }
+
+        let t0 = Instant::now();
+        let ids = self.idx.as_ref().unwrap().query_trigrams(&trigrams);
+        println!("found {} hits in {}ms", ids.len(), t0.elapsed().as_millis());
+        self.ids = Some(ids);
 
         Ok(())
     }
